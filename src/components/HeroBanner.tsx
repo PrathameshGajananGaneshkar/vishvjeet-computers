@@ -80,49 +80,49 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   const slide = activeSlides[currentSlide % activeSlides.length] || activeSlides[0];
 
   return (
-    <div className="relative overflow-hidden bg-slate-950 text-white rounded-2xl md:rounded-3xl shadow-xl my-4 mx-4 max-w-7xl lg:mx-auto">
-      <div className={`relative min-h-[380px] md:min-h-[440px] flex items-center bg-gradient-to-r ${slide.bgGradient} transition-all duration-700 p-6 md:p-12`}>
+    <div className="relative overflow-hidden bg-slate-950 text-white rounded-2xl md:rounded-3xl shadow-xl my-2.5 sm:my-4 mx-2.5 sm:mx-4 max-w-7xl lg:mx-auto">
+      <div className={`relative min-h-[260px] sm:min-h-[360px] md:min-h-[440px] flex items-center bg-gradient-to-r ${slide.bgGradient} transition-all duration-700 px-10 py-6 sm:p-10 md:p-12`}>
         {/* Decorative Grid Overlay */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
-        <div className="relative z-10 grid md:grid-cols-12 gap-8 items-center w-full">
+        <div className="relative z-10 grid md:grid-cols-12 gap-6 md:gap-8 items-center w-full">
           {/* Left Text */}
-          <div className="md:col-span-7 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 text-xs font-bold tracking-wide uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{slide.badge}</span>
+          <div className="md:col-span-7 space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 text-[10px] sm:text-xs font-bold tracking-wide uppercase">
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+              <span className="line-clamp-1">{slide.badge}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-white drop-shadow-sm">
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug text-white drop-shadow-sm">
               {slide.title}
             </h1>
 
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
+            <p className="text-slate-300 text-xs sm:text-base leading-relaxed max-w-xl line-clamp-3 sm:line-clamp-none">
               {slide.subtitle}
             </p>
 
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-wrap gap-2.5 sm:gap-3 pt-1 sm:pt-2">
               <button
                 onClick={onShopNow}
-                className="flex items-center gap-2 px-5 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all transform active:scale-95"
+                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all transform active:scale-95"
               >
                 <span>{slide.cta1Text}</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
 
               <button
                 onClick={onBookService}
-                className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/25 text-white font-semibold rounded-xl text-xs sm:text-sm transition-all"
+                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/25 text-white font-semibold rounded-xl text-xs sm:text-sm transition-all"
               >
-                <Wrench className="w-4 h-4 text-amber-300" />
+                <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
                 <span>{slide.cta2Text}</span>
               </button>
             </div>
 
             {/* Micro Trust Proof */}
-            <div className="flex items-center gap-4 text-xs text-slate-300 pt-2 border-t border-white/10">
+            <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-slate-300 pt-2 border-t border-white/10">
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
                 {t('badgeGenuine')}
               </span>
               <span className="hidden sm:inline text-white/30">•</span>
@@ -148,29 +148,29 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
         {/* Carousel Navigation Buttons */}
         <button
-          onClick={() => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1))}
-          className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
+          onClick={() => setCurrentSlide((prev) => (prev === 0 ? activeSlides.length - 1 : prev - 1))}
+          className="absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/30 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
           aria-label="Previous Slide"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         <button
-          onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
+          onClick={() => setCurrentSlide((prev) => (prev + 1) % activeSlides.length)}
+          className="absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/30 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
           aria-label="Next Slide"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Carousel Dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-          {slides.map((_, idx) => (
+        <div className="absolute bottom-2.5 sm:bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          {activeSlides.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentSlide(idx)}
               className={`h-1.5 rounded-full transition-all ${
-                idx === currentSlide ? 'w-6 bg-amber-400' : 'w-2 bg-white/40'
+                idx === currentSlide % activeSlides.length ? 'w-6 bg-amber-400' : 'w-2 bg-white/40'
               }`}
               aria-label={`Go to slide ${idx + 1}`}
             />

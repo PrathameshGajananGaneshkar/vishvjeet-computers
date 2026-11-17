@@ -118,7 +118,7 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {isOwner && onOpenOwner && (
+            {(isOwner || isAdmin) && onOpenOwner && (
               <button
                 onClick={() => {
                   onClose();

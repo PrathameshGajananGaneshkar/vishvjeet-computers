@@ -39,7 +39,7 @@ export const Footer: React.FC<FooterProps> = ({
   const { language, t } = useLanguage();
 
   return (
-    <footer className="bg-slate-950 text-slate-300 pt-12 pb-8 border-t border-slate-800 text-xs mt-12">
+    <footer className="bg-slate-950 text-slate-300 pt-10 sm:pt-12 pb-24 md:pb-8 border-t border-slate-800 text-xs mt-10 sm:mt-12">
       {/* Top Value Badges Bar */}
       <div className="max-w-7xl mx-auto px-4 pb-10 border-b border-slate-800/80">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -290,7 +290,7 @@ export const Footer: React.FC<FooterProps> = ({
             <button 
               onClick={onOpenOwner} 
               className="text-slate-500 hover:text-amber-400 transition-colors cursor-pointer"
-              title="Store Owner Portal (Images & Payments)"
+              title="Store Owner Portal (Images, Price & Payments)"
             >
               👑 Owner Portal
             </button>

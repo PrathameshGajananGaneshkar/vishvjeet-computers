@@ -11,6 +11,7 @@ import {
   Truck,
   ExternalLink,
   Zap,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { firebaseConfig, signInWithGooglePopup } from '../firebase';
@@ -20,7 +21,7 @@ interface FirstTimeLoginPageProps {
 }
 
 export const FirstTimeLoginPage: React.FC<FirstTimeLoginPageProps> = ({ onSuccess }) => {
-  const { completeFirebaseLogin } = useAuth();
+  const { completeFirebaseLogin, closeFirstTimeLogin } = useAuth();
 
   const [isSigningInWithGoogle, setIsSigningInWithGoogle] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -106,9 +107,17 @@ export const FirstTimeLoginPage: React.FC<FirstTimeLoginPageProps> = ({ onSucces
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-6">
       {/* Flipkart-inspired Split Card */}
-      <div className="relative bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden grid grid-cols-1 md:grid-cols-12 my-4">
+      <div className="relative bg-white rounded-2xl sm:rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden grid grid-cols-1 md:grid-cols-12 my-auto">
+        <button
+          type="button"
+          onClick={closeFirstTimeLogin}
+          aria-label="Close login modal"
+          className="absolute top-3 right-3 z-20 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
         {/* Left Panel: VishwaJit Computers Flipkart-Style Branding */}
         <div className="md:col-span-5 bg-[#2874f0] text-white p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute -right-12 -bottom-12 w-44 h-44 rounded-full bg-white/10 pointer-events-none"></div>
@@ -152,10 +161,10 @@ export const FirstTimeLoginPage: React.FC<FirstTimeLoginPageProps> = ({ onSucces
         </div>
 
         {/* Right Panel: Continue with Google Sign-In */}
-        <div className="md:col-span-7 p-6 sm:p-8 flex flex-col justify-between bg-white space-y-6">
-          <div className="space-y-5">
+        <div className="md:col-span-7 p-5 sm:p-8 flex flex-col justify-between bg-white space-y-5 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             {/* Subheader */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 pr-9">
               <div>
                 <span className="text-[11px] font-bold uppercase text-[#2874f0] tracking-wider flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />

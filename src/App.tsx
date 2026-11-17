@@ -152,7 +152,7 @@ function MainAppContent() {
 
   // Main UI Tree
   const appContent = (
-    <div className="min-h-screen flex flex-col bg-[#f1f3f6] text-slate-800">
+    <div className="min-h-screen flex flex-col bg-[#f1f3f6] text-slate-800 overflow-x-hidden">
       {/* Toast Notification */}
       {notificationMsg && (
         <div className="fixed top-16 right-4 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold border border-slate-700 animate-in fade-in slide-in-from-top-4">
@@ -303,11 +303,11 @@ function MainAppContent() {
               {/* Email (Kept in Store Support Showcase & Footer, removed from Navbar as requested) */}
               <a
                 href={`mailto:${settings.email}`}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-100 text-blue-950 rounded-xl text-xs sm:text-sm font-black shadow-md transition-all font-mono"
+                className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 bg-white hover:bg-slate-100 text-blue-950 rounded-xl text-[11px] sm:text-sm font-black shadow-md transition-all font-mono max-w-full"
                 title="Send Email"
               >
                 <Mail className="w-4 h-4 text-[#2874f0] shrink-0" />
-                <span>{settings.email}</span>
+                <span className="truncate">{settings.email}</span>
               </a>
             </div>
           </div>
@@ -316,13 +316,13 @@ function MainAppContent() {
 
       {/* Floating Bottom Comparison Tray */}
       {compareProducts.length > 0 && (
-        <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 border border-slate-700">
-          <span className="text-xs font-bold text-yellow-400">
-            {compareProducts.length} Product(s) Selected for Compare
+        <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-4 sm:px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-2 sm:gap-3 border border-slate-700 w-[92%] max-w-md md:w-auto">
+          <span className="text-[11px] sm:text-xs font-bold text-yellow-400 truncate">
+            {compareProducts.length} Product(s) Selected
           </span>
           <button
             onClick={() => setCompareModalOpen(true)}
-            className="px-3 py-1 bg-[#2874f0] hover:bg-blue-600 text-white rounded-full text-xs font-bold flex items-center gap-1"
+            className="px-3 py-1 bg-[#2874f0] hover:bg-blue-600 text-white rounded-full text-xs font-bold flex items-center gap-1 shrink-0"
           >
             <ArrowLeftRight className="w-3.5 h-3.5" />
             <span>Compare Now</span>
@@ -367,11 +367,11 @@ function MainAppContent() {
 
       {/* --- ALL MODALS --- */}
 
-      {/* 0. Flipkart Style Real Firebase Mobile OTP Login Gate */}
-      {(!isAuthenticated || isFirstTimeLoginOpen) && (
+      {/* 0. Flipkart Style Firebase Google Login Modal */}
+      {!isAuthenticated && isFirstTimeLoginOpen && (
         <FirstTimeLoginPage
           onSuccess={() => {
-            showNotification('Mobile number verified! Welcome to VishwaJit Computers.');
+            showNotification('Signed in with Google! Welcome to VishwaJit Computers.');
           }}
         />
       )}

@@ -34,11 +34,30 @@ export const AndroidAppModal: React.FC<AndroidAppModalProps> = ({
   isMobileSimulatorActive = false,
 }) => {
   const { language } = useLanguage();
-  const { isInstallable, isInstalled, install } = usePWAInstall();
+  const {
+    isInstallable,
+    isInstalled,
+    isIOS,
+    isInAppBrowser,
+    isInIframe,
+    install,
+  } = usePWAInstall();
   const [activeTab, setActiveTab] = useState<'guide' | 'files' | 'simulator'>('guide');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [installFeedback, setInstallFeedback] = useState<'idle' | 'dismissed' | 'manual-guide'>('idle');
 
   if (!isOpen) return null;
+
+  const handleInstallClick = async () => {
+    const outcome = await install();
+    if (outcome === 'dismissed') {
+      setInstallFeedback('dismissed');
+    } else if (outcome === 'unavailable') {
+      setInstallFeedback('manual-guide');
+    } else {
+      setInstallFeedback('idle');
+    }
+  };
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -48,7 +67,7 @@ export const AndroidAppModal: React.FC<AndroidAppModalProps> = ({
 
   const twaManifest = JSON.stringify({
     packageId: "com.vishvjeetcomputer.app",
-    host: window.location.host || "vishvjeetcomputer.web.app",
+    host: window.location.host || "vishvjeet-computers.vercel.app",
     name: "Vishvjeet Computer",
     launcherName: "Vishvjeet",
     themeColor: "#2874f0",
@@ -56,8 +75,8 @@ export const AndroidAppModal: React.FC<AndroidAppModalProps> = ({
     backgroundColor: "#ffffff",
     enableNotifications: true,
     startUrl: "/",
-    iconUrl: `${window.location.origin}/icon.svg`,
-    maskableIconUrl: `${window.location.origin}/icon.svg`,
+    iconUrl: `${window.location.origin}/pwa-512x512.png`,
+    maskableIconUrl: `${window.location.origin}/pwa-maskable-512x512.png`,
     appVersion: "1.0.0",
     appVersionCode: 1,
     shortcuts: [
@@ -335,20 +354,84 @@ export const AndroidAppModal: React.FC<AndroidAppModalProps> = ({
                     मोबाईलच्या ॲप ड्रॉवरमध्ये Vishvjeet Computer चे अधिकृत ॲप आयकॉन तयार होईल आणि ते अगदी Native App सारखे फुल स्क्रीन उघडेल!
                   </p>
 
-                  <div className="pt-1">
+                  <div className="pt-1 space-y-3">
                     {isInstalled ? (
                       <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Already Running as Installed Android App!</span>
                       </div>
                     ) : (
-                      <button
-                        onClick={install}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-all"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>Install Vishvjeet App on This Device Now</span>
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <button
+                          onClick={handleInstallClick}
+                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span>Install Vishvjeet App on This Device Now</span>
+                        </button>
+                        {isInstallable && (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                            One-Tap Install Ready
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {installFeedback === 'dismissed' && (
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                        {language === 'mr'
+                          ? 'तुम्ही Install पॉपअप रद्द केले. इन्स्टॉल करण्यासाठी वरच्या बटणावर पुन्हा टॅप करा किंवा Chrome च्या ⋮ मेन्यूमधून "Install app" निवडा.'
+                          : 'Install prompt was dismissed. Tap the button again or use Chrome menu (⋮) → "Install app".'}
+                      </div>
+                    )}
+
+                    {installFeedback === 'manual-guide' && !isInstalled && (
+                      <div className="p-3.5 rounded-xl bg-white border border-emerald-300 text-xs text-slate-700 space-y-2 shadow-sm">
+                        <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                          <Smartphone className="w-4 h-4 text-emerald-600" />
+                          <span>
+                            {language === 'mr'
+                              ? 'थेट मोबाईलमध्ये App Install करण्याची सोपी पद्धत:'
+                              : 'How to Install App on This Browser:'}
+                          </span>
+                        </div>
+                        {isInIframe ? (
+                          <div className="space-y-2">
+                            <p>
+                              {language === 'mr'
+                                ? 'हा Preview iframe असल्यामुळे थेट येथे App Install पॉपअप येत नाही. कृपया खालील बटणाने साईट नवीन Chrome टॅबमध्ये उघडा आणि Install करा:'
+                                : 'Browser install prompts cannot launch inside an embedded preview frame. Open the app in a direct Chrome tab first:'}
+                            </p>
+                            <a
+                              href={window.location.origin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2874f0] hover:bg-blue-600 text-white rounded-lg text-xs font-bold"
+                            >
+                              <span>Open Direct Link in Chrome</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        ) : isInAppBrowser ? (
+                          <p>
+                            {language === 'mr'
+                              ? 'तुम्ही WhatsApp / Instagram च्या In-App ब्राउझरमध्ये आहात. वरच्या उजव्या कोपऱ्यातील ⋮ (Three Dots) वर टॅप करून "Open in Chrome" निवडा, आणि मग App Install करा!'
+                              : 'You are using an in-app browser (WhatsApp/Instagram). Tap the top-right ⋮ menu → "Open in Chrome", then tap Install.'}
+                          </p>
+                        ) : isIOS ? (
+                          <p>
+                            {language === 'mr'
+                              ? 'iPhone / Safari मध्ये: खालच्या Share (↑) आयकॉनवर टॅप करा आणि "Add to Home Screen" निवडा.'
+                              : 'On iPhone / Safari: Tap the Share (↑) button at the bottom and select "Add to Home Screen".'}
+                          </p>
+                        ) : (
+                          <p>
+                            {language === 'mr'
+                              ? 'Android Chrome मध्ये वरच्या उजव्या कोपऱ्यातील ⋮ (Three Dots) वर टॅप करा → "Add to Home screen" किंवा "Install app" वर क्लिक करा. लगेच Home Screen वर App तयार होईल!'
+                              : 'In Chrome, tap the top-right menu (⋮) or address-bar install icon → select "Install app" / "Add to Home screen".'}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

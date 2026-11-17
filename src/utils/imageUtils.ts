@@ -1,7 +1,7 @@
 /**
  * Compresses an image file from user phone/camera/desktop
- * and converts it to a lightweight Base64 Data URL.
- * Automatically limits dimension to 1200px and optimizes JPEG quality.
+ * and converts it to a lightweight Base64 Data URL that fits safely
+ * inside Firestore documents and loads fast on mobile networks.
  */
 export const compressAndLoadImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -16,8 +16,8 @@ export const compressAndLoadImage = (file: File): Promise<string> => {
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
           let width = img.width;
           let height = img.height;
 
@@ -42,10 +42,12 @@ export const compressAndLoadImage = (file: File): Promise<string> => {
           }
 
           ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          let dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          if (dataUrl.length > 300000) {
+            dataUrl = canvas.toDataURL('image/jpeg', 0.55);
+          }
           resolve(dataUrl);
         } catch {
-          // Fallback to original data URL if canvas fails
           resolve(event.target?.result as string);
         }
       };

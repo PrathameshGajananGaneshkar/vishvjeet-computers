@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Product, Order, ServiceRequest, Coupon, Review, StoreSettings, OrderStatus, ServiceStatus, OrderTimelineEvent, StoreBanner } from '../types';
 import { initialProducts, initialCoupons, initialReviews, initialStoreSettings, initialSampleOrders, initialSampleServiceRequests } from '../data/seedData';
+import {
+  saveProductToFirestore,
+  deleteProductFromFirestore,
+  saveStoreSettingsToFirestore,
+  subscribeToFirestoreProducts,
+  subscribeToFirestoreSettings,
+} from '../firebase';
 
 interface StoreContextType {
   products: Product[];
@@ -32,8 +39,9 @@ interface StoreContextType {
   bookServiceRequest: (data: Omit<ServiceRequest, 'id' | 'ticketNumber' | 'createdAt' | 'status'>) => ServiceRequest;
   updateServiceStatus: (ticketId: string, status: ServiceStatus, tech?: string, notes?: string, cost?: number) => void;
   addReview: (review: Omit<Review, 'id' | 'date'>) => void;
-  updateStoreSettings: (newSettings: Partial<StoreSettings>) => void;
+  updateStoreSettings: (newSettings: Partial<StoreSettings>, ownerFieldsOnly?: boolean) => void;
   updateProductImage: (productId: string, imageUrl: string) => void;
+  updateProductPrice: (productId: string, price: number, mrp?: number) => void;
   updateHeroBanners: (banners: StoreBanner[]) => void;
 }
 
@@ -158,6 +166,51 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('vc_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
+  // Keep latest deletedProductIds ref for real-time Firestore catalog merging
+  const deletedIdsRef = useRef<string[]>(settings.deletedProductIds || []);
+  useEffect(() => {
+    deletedIdsRef.current = settings.deletedProductIds || [];
+  }, [settings.deletedProductIds]);
+
+  // Real-time Firestore sync for catalog & store settings across all devices (Admin / Owner -> Customers)
+  useEffect(() => {
+    const unsubProducts = subscribeToFirestoreProducts((cloudProducts) => {
+      if (cloudProducts.length === 0) return;
+      const cloudMap = new Map(cloudProducts.map((p) => [p.id, p]));
+      const deletedSet = new Set(deletedIdsRef.current);
+
+      const mergedSeeds = initialProducts
+        .filter((seed) => !deletedSet.has(seed.id))
+        .map((seed) => {
+          const override = cloudMap.get(seed.id);
+          return override ? { ...seed, ...override, images: override.images.length ? override.images : seed.images } : seed;
+        });
+
+      const seedIds = new Set(initialProducts.map((s) => s.id));
+      const customProducts = cloudProducts.filter((cp) => !seedIds.has(cp.id) && !deletedSet.has(cp.id));
+      setProducts([...customProducts, ...mergedSeeds]);
+    });
+
+    const unsubSettings = subscribeToFirestoreSettings((cloudSettings) => {
+      setSettings((prev) => ({
+        ...prev,
+        ...cloudSettings,
+        phone: cloudSettings.phone || '+91 89566 64295',
+        whatsapp: cloudSettings.whatsapp || '+918956664295',
+        email: cloudSettings.email || 'vishwajeetnanhai199@gmail.com',
+      }));
+      if (Array.isArray(cloudSettings.deletedProductIds)) {
+        const deletedSet = new Set(cloudSettings.deletedProductIds);
+        setProducts((prev) => prev.filter((p) => !deletedSet.has(p.id)));
+      }
+    });
+
+    return () => {
+      unsubProducts();
+      unsubSettings();
+    };
+  }, []);
+
   const setCurrentPincode = (pin: string) => {
     setCurrentPincodeState(pin);
     localStorage.setItem('vc_pincode', pin);
@@ -196,15 +249,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: `prod-custom-${Date.now()}`,
     };
     setProducts(prev => [newProduct, ...prev]);
+    saveProductToFirestore(newProduct);
     return newProduct;
   };
 
   const updateProduct = (updated: Product) => {
     setProducts(prev => prev.map(p => (p.id === updated.id ? updated : p)));
+    saveProductToFirestore(updated);
   };
 
   const deleteProduct = (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id));
+    deleteProductFromFirestore(id);
+    setSettings(prev => {
+      const nextDeleted = Array.from(new Set([...(prev.deletedProductIds || []), id]));
+      const updated = { ...prev, deletedProductIds: nextDeleted };
+      saveStoreSettingsToFirestore(updated);
+      return updated;
+    });
   };
 
   const placeOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'timeline'>): Order => {
@@ -502,9 +564,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-  const updateStoreSettings = (newSettings: Partial<StoreSettings>) => {
+  const updateStoreSettings = (newSettings: Partial<StoreSettings>, ownerFieldsOnly = false) => {
     setSettings(prev => {
       const updated = { ...prev, ...newSettings };
+      saveStoreSettingsToFirestore(updated, ownerFieldsOnly);
       fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -518,19 +581,42 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setProducts(prev =>
       prev.map(p => {
         if (p.id !== productId) return p;
-        return {
+        const updatedProduct = {
           ...p,
           images: [imageUrl, ...(p.images.slice(1))],
         };
+        saveProductToFirestore(updatedProduct, ['images']);
+        return updatedProduct;
+      })
+    );
+  };
+
+  const updateProductPrice = (productId: string, price: number, mrp?: number) => {
+    setProducts(prev =>
+      prev.map(p => {
+        if (p.id !== productId) return p;
+        const safePrice = Math.max(0, Math.round(price));
+        const safeMrp = mrp !== undefined ? Math.max(safePrice, Math.round(mrp)) : Math.max(safePrice, p.mrp);
+        const updatedProduct = {
+          ...p,
+          price: safePrice,
+          mrp: safeMrp,
+        };
+        saveProductToFirestore(updatedProduct, ['price', 'mrp']);
+        return updatedProduct;
       })
     );
   };
 
   const updateHeroBanners = (banners: StoreBanner[]) => {
-    setSettings(prev => ({
-      ...prev,
-      heroBanners: banners,
-    }));
+    setSettings(prev => {
+      const updated = {
+        ...prev,
+        heroBanners: banners,
+      };
+      saveStoreSettingsToFirestore(updated, true);
+      return updated;
+    });
   };
 
   return (
@@ -563,6 +649,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addReview,
         updateStoreSettings,
         updateProductImage,
+        updateProductPrice,
         updateHeroBanners,
       }}
     >

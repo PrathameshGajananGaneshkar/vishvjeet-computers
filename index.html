@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <script>
       // Gracefully prevent Vite HMR WebSocket connection failure in sandbox iframe
       (function() {
@@ -13,8 +13,7 @@
               const urlStr = String(url || '');
               const isHmr = urlStr.includes('vite') || 
                             protocols === 'vite-hmr' || 
-                            (Array.isArray(protocols) && protocols.includes('vite-hmr')) ||
-                            !window.location.hostname.includes('localhost');
+                            (Array.isArray(protocols) && protocols.includes('vite-hmr'));
               
               if (isHmr) {
                 const dummy = new EventTarget();
@@ -78,6 +77,17 @@
             e.preventDefault();
           }
         });
+
+        // Capture Chrome/Android PWA beforeinstallprompt early so late-mounted modals never miss it
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          window.__deferredPWAInstallPrompt = e;
+          window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+        });
+        window.addEventListener('appinstalled', () => {
+          window.__deferredPWAInstallPrompt = null;
+          window.dispatchEvent(new CustomEvent('pwa-app-installed'));
+        });
       })();
     </script>
     <title>Vishvjeet Computer - E-Commerce & IT Services</title>
@@ -92,7 +102,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Vishvjeet" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

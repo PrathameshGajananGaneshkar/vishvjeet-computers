@@ -23,6 +23,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useStore } from '../context/StoreContext';
+import { usePWAInstall } from '../utils/usePWAInstall';
 import { ProductCategory, Product } from '../types';
 
 interface HeaderProps {
@@ -56,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, isAuthenticated, isAdmin, isOwner, role, logout } = useAuth();
   const { itemCount } = useCart();
   const { products, wishlist, currentPincode, setCurrentPincode, settings } = useStore();
+  const { isInstallable, isInstalled, install } = usePWAInstall();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -66,19 +68,23 @@ export const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
 
   // Close search suggestions & dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const inDesktopSearch = searchRef.current && searchRef.current.contains(target);
+      const inMobileSearch = mobileSearchRef.current && mobileSearchRef.current.contains(target);
+      if (!inDesktopSearch && !inMobileSearch) {
         setShowSuggestions(false);
       }
-      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+      if (accountRef.current && !accountRef.current.contains(target)) {
         setShowAccountDropdown(false);
       }
-      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
+      if (moreRef.current && !moreRef.current.contains(target)) {
         setShowMoreDropdown(false);
       }
     };
@@ -121,13 +127,13 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#2874f0] shadow-md select-none">
       {/* 1. Flipkart Top Sub-bar (Contact phone, Chikhli location, Language, App CTA - NO GMAIL) */}
-      <div className="bg-[#1f5ec4] text-white/90 text-[11px] py-1 px-4 border-b border-blue-400/30">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div className="bg-[#1f5ec4] text-white/90 text-[10px] sm:text-[11px] py-1 px-2.5 sm:px-4 border-b border-blue-400/30">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           {/* Left: Location & Chikhli Store Notice */}
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 font-bold text-yellow-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              {settings.storeName} • {settings.city}, {settings.district} (MH)
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="inline-flex items-center gap-1 font-bold text-yellow-300 truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <span className="truncate">{settings.storeName} • {settings.city}</span>
             </span>
             <span className="hidden md:inline text-blue-300">|</span>
             <span className="hidden md:inline text-white/80 truncate">
@@ -136,15 +142,31 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Right: Phone, Android App, Language (No Gmail in navbar) */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0 font-medium">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0 font-medium">
             <a 
               href={`tel:${settings.phone.replace(/\s+/g, '')}`} 
-              className="flex items-center gap-1.5 text-white hover:text-yellow-300 font-bold transition-colors"
+              className="flex items-center gap-1 text-white hover:text-yellow-300 font-bold transition-colors"
               title="Call Chikhli Store"
             >
               <Phone className="w-3 h-3 text-yellow-300 shrink-0" />
-              <span>{settings.phone}</span>
+              <span className="hidden xs:inline sm:inline">{settings.phone}</span>
+              <span className="xs:hidden sm:hidden">Call</span>
             </a>
+
+            {isInstallable && !isInstalled && (
+              <button
+                onClick={async () => {
+                  const res = await install();
+                  if (res === 'unavailable' && onOpenAndroidAppModal) {
+                    onOpenAndroidAppModal();
+                  }
+                }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[10px] transition-colors shadow-xs cursor-pointer"
+              >
+                <Download className="w-3 h-3 shrink-0" />
+                <span>Install App</span>
+              </button>
+            )}
 
             <span className="hidden sm:inline text-blue-300">•</span>
 
@@ -173,15 +195,15 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* 2. Main Flipkart-Style Blue Header */}
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3 md:gap-6 text-white">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 md:gap-6 text-white">
         {/* Left: Mobile hamburger & Flipkart-Style Logo Lockup */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-1.5 rounded text-white hover:bg-blue-600 focus:outline-none"
+            className="md:hidden p-1.5 -ml-1 rounded text-white hover:bg-blue-600 focus:outline-none"
             aria-label="Toggle Menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
           {/* Flipkart Brand Logo: Vishvjeet Explore Plus */}
@@ -190,11 +212,11 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex flex-col text-left group focus:outline-none cursor-pointer"
           >
             <div className="flex items-center gap-1.5">
-              <span className="text-xl md:text-2xl font-black italic tracking-wide text-white drop-shadow-xs">
+              <span className="text-lg sm:text-xl md:text-2xl font-black italic tracking-wide text-white drop-shadow-xs">
                 Vishvjeet
               </span>
             </div>
-            <div className="flex items-center gap-1 -mt-1 text-[11px] font-medium text-white/90 italic group-hover:underline">
+            <div className="flex items-center gap-1 -mt-1 text-[10px] sm:text-[11px] font-medium text-white/90 italic group-hover:underline">
               <span>Explore</span>
               <span className="text-[#ffe500] font-bold">Plus</span>
               <span className="text-[#ffe500] text-xs font-black">✦</span>
@@ -202,8 +224,8 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
-        {/* Center: Flipkart White Search Bar */}
-        <div ref={searchRef} className="flex-1 max-w-2xl relative">
+        {/* Center: Flipkart White Search Bar (Desktop) */}
+        <div ref={searchRef} className="hidden md:block flex-1 max-w-2xl relative">
           <div className="relative flex items-center">
             <input
               type="text"
@@ -274,13 +296,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right Section: Flipkart White Login Button, Chikhli Store, More, Cart */}
-        <div className="flex items-center gap-2 sm:gap-5 shrink-0 text-white">
+        <div className="flex items-center gap-2.5 sm:gap-5 shrink-0 text-white">
           {/* Flipkart Iconic White "Login" Button */}
           <div ref={accountRef} className="relative">
             {!isAuthenticated ? (
               <button
                 onClick={onOpenAuth}
-                className="bg-white text-[#2874f0] hover:bg-slate-50 font-bold px-6 sm:px-8 py-1.5 text-xs sm:text-sm rounded-xs shadow-xs transition-colors cursor-pointer border border-white"
+                className="bg-white text-[#2874f0] hover:bg-slate-50 font-bold px-3.5 sm:px-8 py-1.5 text-xs sm:text-sm rounded-xs shadow-xs transition-colors cursor-pointer border border-white"
               >
                 Login
               </button>
@@ -308,7 +330,7 @@ export const Header: React.FC<HeaderProps> = ({
                   )}
                   {isOwner && (
                     <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
-                      👑 Store Owner (Image & Payment)
+                      👑 Store Owner (Image, Price & Payment)
                     </span>
                   )}
                   {role === 'customer' && (
@@ -351,16 +373,16 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Wishlist ({wishlist.length})</span>
                 </button>
 
-                {isOwner && (
+                {(isOwner || isAdmin) && onOpenOwner && (
                   <button
                     onClick={() => {
                       setShowAccountDropdown(false);
-                      if (onOpenOwner) onOpenOwner();
+                      onOpenOwner();
                     }}
                     className="w-full text-left px-4 py-2 text-xs text-amber-800 font-bold hover:bg-amber-50 flex items-center gap-2"
                   >
                     <Crown className="w-4 h-4 text-amber-600" />
-                    <span>Owner Control (Images & Payments)</span>
+                    <span>Owner Control (Images, Price & Payment)</span>
                   </button>
                 )}
 
@@ -485,6 +507,74 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
+      {/* Mobile Full-Width Search Row (Flipkart Android App style) */}
+      <div ref={mobileSearchRef} className="md:hidden px-3 pb-2.5 relative">
+        <div className="relative flex items-center">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            placeholder={language === 'mr' ? 'लॅपटॉप, प्रिंटर, सीसीटीव्ही शोधा...' : 'Search laptops, printers, CCTV & more'}
+            className="w-full pl-3.5 pr-10 py-2 bg-white text-slate-900 text-xs rounded-sm border-0 shadow-sm focus:outline-none placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (searchQuery.trim()) setShowSuggestions(true);
+            }}
+            className="absolute right-0 top-0 bottom-0 px-3 bg-white text-[#2874f0] flex items-center justify-center rounded-r-sm cursor-pointer"
+            title="Search"
+          >
+            <Search className="w-4 h-4 text-[#2874f0]" />
+          </button>
+        </div>
+
+        {showSuggestions && searchQuery.trim().length > 1 && (
+          <div className="absolute left-3 right-3 mt-1 bg-white rounded-md shadow-2xl border border-slate-200 overflow-hidden z-50 text-slate-800">
+            <div className="p-2 bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
+              <span>Matching Products ({searchResults.length})</span>
+              <button onClick={() => setShowSuggestions(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {searchResults.length > 0 ? (
+              <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                {searchResults.map((prod) => (
+                  <div
+                    key={prod.id}
+                    onClick={() => handleSelectSearchProduct(prod)}
+                    className="p-2.5 flex items-center gap-3 hover:bg-blue-50/70 cursor-pointer transition-colors"
+                  >
+                    <img
+                      src={prod.images[0]}
+                      alt={prod.title}
+                      className="w-10 h-10 object-contain rounded bg-white p-0.5 border border-slate-200 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="text-xs font-semibold text-slate-900 truncate">
+                        {language === 'mr' && prod.titleMr ? prod.titleMr : prod.title}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px]">
+                        <span className="font-bold text-[#2874f0]">₹{prod.price.toLocaleString('en-IN')}</span>
+                        <span className="line-through text-slate-400 text-[10px]">₹{prod.mrp.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-xs text-slate-500">
+                No matching products found for "{searchQuery}".
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* PIN Code Modal */}
       {showPincodeModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -568,13 +658,17 @@ export const Header: React.FC<HeaderProps> = ({
                 Install as Android App on your smartphone for faster shopping.
               </p>
               <button
-                onClick={() => {
+                onClick={async () => {
                   setMobileMenuOpen(false);
-                  if (onOpenAndroidAppModal) onOpenAndroidAppModal();
+                  const outcome = await install();
+                  if (outcome === 'unavailable' && onOpenAndroidAppModal) {
+                    onOpenAndroidAppModal();
+                  }
                 }}
-                className="mt-2 w-full py-1.5 bg-[#2874f0] hover:bg-blue-600 text-white text-xs font-bold rounded-lg"
+                className="mt-2 w-full py-1.5 bg-[#2874f0] hover:bg-blue-600 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
               >
-                Get Android APK / App
+                <Download className="w-3.5 h-3.5" />
+                <span>{isInstallable ? 'Install App on Phone Now' : 'Get Android APK / App'}</span>
               </button>
             </div>
 
@@ -614,15 +708,29 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
 
+              {(isOwner || isAdmin) && onOpenOwner && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenOwner();
+                  }}
+                  className="w-full py-2 text-center text-xs font-bold text-amber-900 bg-amber-100 border border-amber-200 rounded-xl flex items-center justify-center gap-1.5"
+                >
+                  <Crown className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Owner Control (Images, Price & Payment)</span>
+                </button>
+              )}
+
               {isAdmin && (
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     onOpenAdmin();
                   }}
-                  className="w-full py-2 text-center text-xs font-bold text-[#2874f0] bg-blue-50 rounded-xl"
+                  className="w-full py-2 text-center text-xs font-bold text-purple-900 bg-purple-100 border border-purple-200 rounded-xl flex items-center justify-center gap-1.5"
                 >
-                  Admin Management Portal
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-700" />
+                  <span>Admin Master Console (All Control)</span>
                 </button>
               )}
             </div>

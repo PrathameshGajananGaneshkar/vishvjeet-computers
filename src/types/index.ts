@@ -238,5 +238,6 @@ export interface StoreSettings {
   bankIfsc?: string;
   bankName?: string;
   fast2smsApiKey?: string;
+  deletedProductIds?: string[];
 }
 

@@ -12,13 +12,23 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'manifest.json', 'assetlinks.json'],
+        includeAssets: [
+          'icon.svg',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'pwa-maskable-512x512.png',
+          'apple-touch-icon.png',
+          'manifest.json',
+          'assetlinks.json',
+        ],
         manifest: false, // Use our rich public/manifest.json
         devOptions: {
           enabled: true,
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+          globIgnores: ['**/assets/aistudio/**'],
+          navigateFallbackDenylist: [/^\/api\//, /^\/__\//],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         },
       }),

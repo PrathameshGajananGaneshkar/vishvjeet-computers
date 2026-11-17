@@ -29,8 +29,15 @@ import {
 import { useStore } from '../context/StoreContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatINR, formatDate } from '../utils/formatters';
-import { Product, Order, ServiceRequest, OrderStatus, ServiceStatus, ProductCategory } from '../types';
+import { Product, Order, ServiceRequest, OrderStatus, ServiceStatus, ProductCategory, UserRole } from '../types';
 import { compressAndLoadImage } from '../utils/imageUtils';
+import {
+  fetchAllUsersForAdmin,
+  updateUserRoleByAdmin,
+  AdminUserRecord,
+  ADMIN_EMAIL,
+  OWNER_EMAIL,
+} from '../firebase';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -54,7 +61,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onViewI
 
   const { language } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'services' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'services' | 'settings' | 'users'>('overview');
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [userRecords, setUserRecords] = useState<AdminUserRecord[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [roleSuccessMsg, setRoleSuccessMsg] = useState<string | null>(null);
+
+  const loadRegisteredUsers = async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const list = await fetchAllUsersForAdmin();
+      setUserRecords(list);
+    } catch (err: any) {
+      setUsersError(err?.message || 'Unable to load users from Firestore.');
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleAssignUserRole = async (uid: string, nextRole: UserRole) => {
+    setUsersError(null);
+    try {
+      await updateUserRoleByAdmin(uid, nextRole);
+      setUserRecords((prev) => prev.map((u) => (u.uid === uid ? { ...u, role: nextRole } : u)));
+      setRoleSuccessMsg(`Role updated to ${nextRole.toUpperCase()}!`);
+      setTimeout(() => setRoleSuccessMsg(null), 3000);
+    } catch (err: any) {
+      setUsersError(err?.message || 'Failed to update user role.');
+    }
+  };
 
   // Search & Filter state
   const [productSearch, setProductSearch] = useState('');
@@ -220,7 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onViewI
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all ${
+            className={`px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 ${
               activeTab === 'settings'
                 ? 'bg-blue-700 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-200'
@@ -228,6 +265,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onViewI
           >
             <Settings className="w-4 h-4" />
             <span>Store Settings</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('users');
+              loadRegisteredUsers();
+            }}
+            className={`px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 ${
+              activeTab === 'users'
+                ? 'bg-blue-700 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Users & Owner Roles</span>
           </button>
         </div>
 
@@ -903,6 +955,115 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onViewI
             </form>
           )}
 
+          {/* TAB 6: USERS & OWNER ROLE MANAGEMENT */}
+          {activeTab === 'users' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-extrabold text-sm text-purple-950">
+                    3-Tier Interface Access Control (Admin / App Owner / User)
+                  </h3>
+                  <p className="text-xs text-purple-800 mt-0.5">
+                    Admin (<strong>{ADMIN_EMAIL}</strong>): All Control • Default Owner (<strong>{OWNER_EMAIL}</strong>): Images, Price & Payment Control • Customer: Buy Products Only.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadRegisteredUsers}
+                  className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  {usersLoading ? 'Loading...' : 'Refresh Users'}
+                </button>
+              </div>
+
+              {roleSuccessMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800">
+                  {roleSuccessMsg}
+                </div>
+              )}
+              {usersError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-800">
+                  {usersError}
+                </div>
+              )}
+
+              <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-100 text-slate-700 font-bold">
+                    <tr>
+                      <th className="p-3">User Name</th>
+                      <th className="p-3">Google Email / Phone</th>
+                      <th className="p-3">Current Role</th>
+                      <th className="p-3 text-right">Assign Interface</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {userRecords.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-6 text-center text-slate-500">
+                          {usersLoading ? 'Loading Firestore users...' : 'No signed-in user records found yet.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      userRecords.map((u) => {
+                        const isMasterAdmin = u.email.toLowerCase() === ADMIN_EMAIL || u.role === 'admin';
+                        return (
+                          <tr key={u.uid} className="hover:bg-slate-50">
+                            <td className="p-3 font-bold text-slate-900">{u.name}</td>
+                            <td className="p-3 text-slate-600">{u.email || u.phone || u.uid}</td>
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                  u.role === 'admin'
+                                    ? 'bg-purple-100 text-purple-900'
+                                    : u.role === 'owner'
+                                    ? 'bg-amber-100 text-amber-900'
+                                    : 'bg-blue-100 text-blue-900'
+                                }`}
+                              >
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right space-x-2">
+                              {isMasterAdmin ? (
+                                <span className="text-[11px] font-bold text-purple-700">Master Admin</span>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAssignUserRole(u.uid, 'owner')}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
+                                      u.role === 'owner'
+                                        ? 'bg-amber-600 text-white'
+                                        : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
+                                    }`}
+                                  >
+                                    Set App Owner
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAssignUserRole(u.uid, 'customer')}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
+                                      u.role === 'customer'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200'
+                                    }`}
+                                  >
+                                    Set Customer
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -997,16 +1158,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onViewI
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setImageUploadError(null);
                         try {
                           const dataUrl = await compressAndLoadImage(file);
                           setProductForm({ ...productForm, images: [dataUrl] });
                         } catch (err: any) {
-                          alert(err?.message || 'Error loading image');
+                          setImageUploadError(err?.message || 'Error loading image');
                         }
                       }}
                     />
                   </label>
                 </div>
+                {imageUploadError && (
+                  <p className="text-[11px] text-rose-600 font-bold mb-1">{imageUploadError}</p>
+                )}
                 <div className="flex items-center gap-3">
                   {productForm.images?.[0] && (
                     <img

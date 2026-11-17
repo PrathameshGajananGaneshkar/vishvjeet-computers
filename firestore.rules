@@ -42,6 +42,14 @@ service cloud.firestore {
       );
     }
 
+    function isStoreOwner() {
+      return isVerifiedUser() && (
+        (request.auth.token.email_verified == true && request.auth.token.email == 'vishwajeetnanhai199@gmail.com') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner')
+      );
+    }
+
     // --- ENTITY VALIDATION BLUEPRINTS ---
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'name', 'phone', 'role', 'createdAt', 'updatedAt'])
@@ -108,17 +116,95 @@ service cloud.firestore {
 
     function isValidProduct(data) {
       return data.keys().hasAll(['id', 'title', 'brand', 'category', 'price', 'mrp', 'stock'])
-        && data.keys().hasOnly(['id', 'title', 'brand', 'category', 'subCategory', 'price', 'mrp', 'stock', 'images', 'rating', 'reviewCount', 'isFeatured', 'isDealOfDay', 'sku'])
+        && data.keys().hasOnly([
+          'id', 'title', 'titleMr', 'brand', 'category', 'subCategory',
+          'price', 'mrp', 'stock', 'images', 'rating', 'reviewCount',
+          'description', 'descriptionMr', 'keyFeatures', 'keyFeaturesMr',
+          'specifications', 'warranty', 'returnPolicy',
+          'isFeatured', 'isDealOfDay', 'isBestSeller', 'isDemo',
+          'compatibleWith', 'sku', 'updatedAt'
+        ])
         && isValidId(data.id)
         && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && (!('titleMr' in data) || (data.titleMr is string && data.titleMr.size() <= 250))
         && data.brand is string && data.brand.size() >= 1 && data.brand.size() <= 80
         && data.category is string && data.category.size() >= 1 && data.category.size() <= 80
         && data.price is number && data.price >= 0
         && data.mrp is number && data.mrp >= 0
         && data.stock is int && data.stock >= 0
         && (!('subCategory' in data) || (data.subCategory is string && data.subCategory.size() <= 80))
-        && (!('images' in data) || (data.images is string && data.images.size() <= 1000))
-        && (!('sku' in data) || (data.sku is string && data.sku.size() <= 50));
+        && (!('images' in data) || (
+          data.images is list && data.images.size() >= 1 && data.images.size() <= 8 &&
+          data.images[0] is string && data.images[0].size() <= 350000
+        ))
+        && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
+        && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
+        && (!('description' in data) || (data.description is string && data.description.size() <= 3000))
+        && (!('descriptionMr' in data) || (data.descriptionMr is string && data.descriptionMr.size() <= 3000))
+        && (!('keyFeatures' in data) || (data.keyFeatures is list && data.keyFeatures.size() <= 20 && (data.keyFeatures.size() == 0 || data.keyFeatures[0] is string)))
+        && (!('keyFeaturesMr' in data) || (data.keyFeaturesMr is list && data.keyFeaturesMr.size() <= 20 && (data.keyFeaturesMr.size() == 0 || data.keyFeaturesMr[0] is string)))
+        && (!('specifications' in data) || data.specifications is map)
+        && (!('warranty' in data) || (data.warranty is string && data.warranty.size() <= 300))
+        && (!('returnPolicy' in data) || (data.returnPolicy is string && data.returnPolicy.size() <= 300))
+        && (!('isFeatured' in data) || data.isFeatured is bool)
+        && (!('isDealOfDay' in data) || data.isDealOfDay is bool)
+        && (!('isBestSeller' in data) || data.isBestSeller is bool)
+        && (!('isDemo' in data) || data.isDemo is bool)
+        && (!('compatibleWith' in data) || (data.compatibleWith is list && data.compatibleWith.size() <= 20 && (data.compatibleWith.size() == 0 || data.compatibleWith[0] is string)))
+        && (!('sku' in data) || (data.sku is string && data.sku.size() <= 50))
+        && (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidStoreSetting(data) {
+      return data.keys().hasAll(['storeName'])
+        && data.keys().hasOnly([
+          'storeName', 'tagline', 'taglineMr', 'phone', 'whatsapp', 'email',
+          'address', 'addressMr', 'city', 'district', 'state', 'pincode', 'gstin',
+          'openingHours', 'openingHoursMr', 'googleMapsUrl',
+          'freeShippingThreshold', 'standardShippingFee',
+          'razorpayKeyId', 'isRazorpayTestMode',
+          'upiId', 'upiPayeeName', 'enableUpi', 'enableCards', 'enableNetBanking', 'enableCod',
+          'announcementText', 'announcementTextMr', 'heroBanners',
+          'qrCodeUrl', 'bankAccountName', 'bankAccountNumber', 'bankIfsc', 'bankName',
+          'fast2smsApiKey', 'deletedProductIds', 'updatedAt'
+        ])
+        && data.storeName is string && data.storeName.size() >= 1 && data.storeName.size() <= 120
+        && (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 200))
+        && (!('taglineMr' in data) || (data.taglineMr is string && data.taglineMr.size() <= 200))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 30))
+        && (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 30))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 100))
+        && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('addressMr' in data) || (data.addressMr is string && data.addressMr.size() <= 300))
+        && (!('city' in data) || (data.city is string && data.city.size() <= 60))
+        && (!('district' in data) || (data.district is string && data.district.size() <= 60))
+        && (!('state' in data) || (data.state is string && data.state.size() <= 60))
+        && (!('pincode' in data) || (data.pincode is string && data.pincode.size() <= 12))
+        && (!('gstin' in data) || (data.gstin is string && data.gstin.size() <= 30))
+        && (!('openingHours' in data) || (data.openingHours is string && data.openingHours.size() <= 120))
+        && (!('openingHoursMr' in data) || (data.openingHoursMr is string && data.openingHoursMr.size() <= 120))
+        && (!('googleMapsUrl' in data) || (data.googleMapsUrl is string && data.googleMapsUrl.size() <= 500))
+        && (!('freeShippingThreshold' in data) || (data.freeShippingThreshold is number && data.freeShippingThreshold >= 0))
+        && (!('standardShippingFee' in data) || (data.standardShippingFee is number && data.standardShippingFee >= 0))
+        && (!('razorpayKeyId' in data) || (data.razorpayKeyId is string && data.razorpayKeyId.size() <= 120))
+        && (!('isRazorpayTestMode' in data) || data.isRazorpayTestMode is bool)
+        && (!('upiId' in data) || (data.upiId is string && data.upiId.size() <= 100))
+        && (!('upiPayeeName' in data) || (data.upiPayeeName is string && data.upiPayeeName.size() <= 100))
+        && (!('enableUpi' in data) || data.enableUpi is bool)
+        && (!('enableCards' in data) || data.enableCards is bool)
+        && (!('enableNetBanking' in data) || data.enableNetBanking is bool)
+        && (!('enableCod' in data) || data.enableCod is bool)
+        && (!('announcementText' in data) || (data.announcementText is string && data.announcementText.size() <= 300))
+        && (!('announcementTextMr' in data) || (data.announcementTextMr is string && data.announcementTextMr.size() <= 300))
+        && (!('heroBanners' in data) || (data.heroBanners is list && data.heroBanners.size() <= 10 && (data.heroBanners.size() == 0 || data.heroBanners[0] is map)))
+        && (!('qrCodeUrl' in data) || (data.qrCodeUrl is string && data.qrCodeUrl.size() <= 1000))
+        && (!('bankAccountName' in data) || (data.bankAccountName is string && data.bankAccountName.size() <= 120))
+        && (!('bankAccountNumber' in data) || (data.bankAccountNumber is string && data.bankAccountNumber.size() <= 40))
+        && (!('bankIfsc' in data) || (data.bankIfsc is string && data.bankIfsc.size() <= 30))
+        && (!('bankName' in data) || (data.bankName is string && data.bankName.size() <= 120))
+        && (!('fast2smsApiKey' in data) || (data.fast2smsApiKey is string && data.fast2smsApiKey.size() <= 200))
+        && (!('deletedProductIds' in data) || (data.deletedProductIds is list && data.deletedProductIds.size() <= 200 && (data.deletedProductIds.size() == 0 || data.deletedProductIds[0] is string)))
+        && (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
     // --- COLLECTIONS ---
@@ -138,7 +224,11 @@ service cloud.firestore {
         && isOwner(userId)
         && isValidUser(incoming())
         && incoming().uid == request.auth.uid
-        && incoming().role == 'customer'
+        && (
+          incoming().role == 'customer' ||
+          (incoming().role == 'admin' && request.auth.token.email_verified == true && request.auth.token.email == 'p.ganeshkar8788@gmail.com') ||
+          (incoming().role == 'owner' && request.auth.token.email_verified == true && request.auth.token.email == 'vishwajeetnanhai199@gmail.com')
+        )
         && (!(request.auth.token.phone_number is string) || incoming().phone == request.auth.token.phone_number)
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
@@ -161,11 +251,19 @@ service cloud.firestore {
       allow delete: if isValidId(userId) && isAdmin();
     }
 
-    // Public Storefront Catalog Collections
+    // Public Storefront Catalog Collections (Tiered RBAC: Admin full control, Owner Images & Prices only)
     match /products/{productId} {
       allow get: if isValidId(productId);
       allow list: if true;
-      allow create, update: if isValidId(productId) && isAdmin() && isValidProduct(incoming());
+      allow create: if isValidId(productId)
+        && (isAdmin() || isStoreOwner())
+        && isValidProduct(incoming());
+      allow update: if isValidId(productId)
+        && isValidProduct(incoming())
+        && (
+          isAdmin() ||
+          (isStoreOwner() && incoming().diff(existing()).affectedKeys().hasOnly(['price', 'mrp', 'images', 'updatedAt']))
+        );
       allow delete: if isValidId(productId) && isAdmin();
     }
 
@@ -178,7 +276,8 @@ service cloud.firestore {
     match /banners/{bannerId} {
       allow get: if isValidId(bannerId);
       allow list: if true;
-      allow create, update, delete: if isValidId(bannerId) && isAdmin();
+      allow create, update: if isValidId(bannerId) && (isAdmin() || isStoreOwner());
+      allow delete: if isValidId(bannerId) && isAdmin();
     }
 
     match /coupons/{couponId} {
@@ -187,10 +286,26 @@ service cloud.firestore {
       allow create, update, delete: if isValidId(couponId) && isAdmin();
     }
 
+    // Storefront Settings (Admin full control, Owner Banners & Payments only)
     match /storeSettings/{settingId} {
       allow get: if isValidId(settingId);
       allow list: if true;
-      allow create, update, delete: if isValidId(settingId) && isAdmin();
+      allow create: if isValidId(settingId)
+        && (isAdmin() || isStoreOwner())
+        && isValidStoreSetting(incoming());
+      allow update: if isValidId(settingId)
+        && isValidStoreSetting(incoming())
+        && (
+          isAdmin() ||
+          (isStoreOwner() && incoming().diff(existing()).affectedKeys().hasOnly([
+            'heroBanners', 'upiId', 'upiPayeeName',
+            'enableUpi', 'enableCards', 'enableNetBanking', 'enableCod',
+            'razorpayKeyId', 'isRazorpayTestMode', 'qrCodeUrl',
+            'bankAccountName', 'bankAccountNumber', 'bankIfsc', 'bankName',
+            'fast2smsApiKey', 'updatedAt'
+          ]))
+        );
+      allow delete: if isValidId(settingId) && isAdmin();
     }
 
     // Orders (Customer owns their orders, Admin manages lifecycle)

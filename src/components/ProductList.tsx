@@ -236,12 +236,12 @@ export const ProductList: React.FC<ProductListProps> = ({
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 space-y-6">
+    <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-3 sm:py-4 space-y-4 sm:space-y-6">
       {/* 1. Flipkart Signature Shelf: "Best of Electronics & Computers - Deals of the Day" */}
       {currentCategory === 'all' && (
         <div className="bg-white rounded-xs border border-slate-200 shadow-xs overflow-hidden">
           {/* Header Row */}
-          <div className="px-4 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+          <div className="px-3 sm:px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
             <div className="flex items-center gap-3">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 {language === 'mr' ? 'आजच्या सर्वोत्तम ऑफर्स (Best of Electronics)' : 'Best of Electronics & Hardware Deals'}
@@ -265,14 +265,14 @@ export const ProductList: React.FC<ProductListProps> = ({
           </div>
 
           {/* Horizontal Product Shelf */}
-          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto">
+          <div className="p-2.5 sm:p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
             {dealProducts.map((prod) => (
               <div 
                 key={prod.id}
                 onClick={() => onSelectProduct(prod)}
                 className="group flex flex-col text-center items-center p-2 rounded hover:shadow-md transition-shadow cursor-pointer bg-white border border-slate-100"
               >
-                <div className="w-28 h-28 sm:w-32 sm:h-32 p-2 flex items-center justify-center mb-2">
+                <div className="w-full max-w-[112px] h-24 sm:h-32 p-1.5 sm:p-2 flex items-center justify-center mb-1.5 sm:mb-2">
                   <img
                     src={prod.images[0]}
                     alt={prod.title}
@@ -369,7 +369,7 @@ export const ProductList: React.FC<ProductListProps> = ({
             <div
               className={
                 viewMode === 'grid'
-                  ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4'
+                  ? 'grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-4'
                   : 'space-y-3'
               }
             >

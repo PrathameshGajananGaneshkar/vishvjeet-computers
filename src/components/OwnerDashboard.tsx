@@ -34,11 +34,23 @@ interface OwnerDashboardProps {
 }
 
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
-  const { settings, updateStoreSettings, updateHeroBanners, products, updateProductImage, orders } = useStore();
+  const {
+    settings,
+    updateStoreSettings,
+    updateHeroBanners,
+    products,
+    updateProductImage,
+    updateProductPrice,
+    orders,
+  } = useStore();
   const { language } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<'images' | 'payments'>('images');
+  const [activeTab, setActiveTab] = useState<'images' | 'prices' | 'payments'>('images');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, { price: string; mrp: string }>>({});
+  const [savedPriceId, setSavedPriceId] = useState<string | null>(null);
 
   // --- Payment Form State ---
   const [paymentForm, setPaymentForm] = useState({
@@ -93,9 +105,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
   const razorpayOrders = orders.filter(o => o.paymentMethod === 'razorpay' || o.paymentMethod === 'card');
   const codOrders = orders.filter(o => o.paymentMethod === 'cod');
 
+  const showError = (msg: string) => {
+    setErrorBanner(msg);
+    setTimeout(() => setErrorBanner(null), 4000);
+  };
+
   const handleSavePaymentSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    updateStoreSettings(paymentForm);
+    updateStoreSettings(paymentForm, true);
     triggerSuccess();
   };
 
@@ -105,8 +122,24 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
   };
 
   const triggerSuccess = () => {
+    setErrorBanner(null);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleSaveProductPrice = (productId: string, fallbackPrice: number, fallbackMrp: number) => {
+    const draft = priceDrafts[productId];
+    const nextPrice = Number(draft?.price ?? fallbackPrice);
+    const nextMrp = Number(draft?.mrp ?? fallbackMrp);
+    if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+      showError('कृपया वैध विक्री किंमत (Selling Price > 0) टाका.');
+      return;
+    }
+    const validMrp = Number.isFinite(nextMrp) && nextMrp >= nextPrice ? nextMrp : nextPrice;
+    updateProductPrice(productId, nextPrice, validMrp);
+    setSavedPriceId(productId);
+    setTimeout(() => setSavedPriceId(null), 2000);
+    triggerSuccess();
   };
 
   const handleUpdateBanner = (index: number, field: keyof StoreBanner, value: string) => {
@@ -167,14 +200,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
       const compressedDataUrl = await compressAndLoadImage(file);
       setModalBannerForm(prev => ({ ...prev, image: compressedDataUrl }));
     } catch (err: any) {
-      alert(err?.message || 'Error processing image file.');
+      showError(err?.message || 'Error processing image file.');
     }
   };
 
   const handleSaveModalBanner = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!modalBannerForm.image) {
-      alert('कृपया बॅनरचा फोटो किंवा लिंक टाका.');
+      showError('कृपया बॅनरचा फोटो किंवा लिंक टाका.');
       return;
     }
     let updated: StoreBanner[];
@@ -192,7 +225,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
 
   const handleDeleteBanner = (id: string) => {
     if (banners.length <= 1) {
-      alert('You must have at least one hero banner.');
+      showError('किमान एक मुख्य बॅनर ठेवणे आवश्यक आहे (At least one hero banner required).');
       return;
     }
     const updated = banners.filter(b => b.id !== id);
@@ -217,7 +250,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
       handleUpdateBanner(index, 'image', compressedDataUrl);
       triggerSuccess();
     } catch (err: any) {
-      alert(err?.message || 'Error processing image file.');
+      showError(err?.message || 'Error processing image file.');
     }
   };
 
@@ -231,7 +264,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
       setNewProductImgUrl('');
       triggerSuccess();
     } catch (err: any) {
-      alert(err?.message || 'Error processing image file.');
+      showError(err?.message || 'Error processing image file.');
     }
   };
 
@@ -240,68 +273,87 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
       <div className="relative bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-6 max-h-[92vh]">
         
         {/* Header */}
-        <div className="px-6 py-4 bg-linear-to-r from-amber-600 via-amber-700 to-amber-900 text-white flex items-center justify-between shrink-0 shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20">
-              <span className="text-xl">👑</span>
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-linear-to-r from-amber-600 via-amber-700 to-amber-900 text-white flex items-center justify-between gap-2 shrink-0 shadow-md">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shrink-0">
+              <span className="text-lg sm:text-xl">👑</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-black">
-                  Owner Control Center / मालक नियंत्रण पॅनेल
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h2 className="text-sm sm:text-base font-black truncate">
+                  Owner Control Center / मालक पॅनेल
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-white text-amber-900">
-                  Images & Payment Only
+                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase bg-white text-amber-900">
+                  Images, Price & Payment
                 </span>
               </div>
-              <p className="text-[11px] text-amber-100">
-                विशेषतः स्टोअर बॅनर प्रतिमा, प्रॉडक्ट फोटो आणि UPI / गेटवे पेमेंट नियंत्रणासाठी
+              <p className="text-[11px] text-amber-100 truncate">
+                स्टोअर फोटो, प्रॉडक्ट किंमत (Price/MRP) आणि UPI / पेमेंट नियंत्रणासाठी
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-white/20 text-white transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="px-6 py-2.5 bg-amber-50/60 border-b border-amber-200/80 flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2 text-xs font-bold">
+        <div className="px-3 sm:px-6 py-2.5 bg-amber-50/60 border-b border-amber-200/80 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold">
             <button
               onClick={() => setActiveTab('images')}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'images'
                   ? 'bg-amber-600 text-white shadow-xs font-black'
-                  : 'text-amber-950 hover:bg-amber-100/80'
+                  : 'text-amber-950 hover:bg-amber-100/80 bg-white/70 border border-amber-200/60'
               }`}
             >
-              <ImageIcon className="w-4 h-4" />
-              <span>1. Image & Banner Control (प्रतिमा व्यवस्थापन)</span>
+              <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>1. Image & Banner</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('prices')}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'prices'
+                  ? 'bg-amber-600 text-white shadow-xs font-black'
+                  : 'text-amber-950 hover:bg-amber-100/80 bg-white/70 border border-amber-200/60'
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>2. Price & MRP (किंमत)</span>
             </button>
 
             <button
               onClick={() => setActiveTab('payments')}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'payments'
                   ? 'bg-amber-600 text-white shadow-xs font-black'
-                  : 'text-amber-950 hover:bg-amber-100/80'
+                  : 'text-amber-950 hover:bg-amber-100/80 bg-white/70 border border-amber-200/60'
               }`}
             >
-              <CreditCard className="w-4 h-4" />
-              <span>2. Payment & Gateway Control (पेमेंट व बँक)</span>
+              <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>3. Payment Control</span>
             </button>
           </div>
 
-          {saveSuccess && (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold border border-emerald-300 animate-in fade-in">
-              <Check className="w-3.5 h-3.5" />
-              <span>बदल यशस्वीरित्या सेव्ह झाले!</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {errorBanner && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-bold border border-rose-300">
+                <span>{errorBanner}</span>
+              </div>
+            )}
+            {saveSuccess && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold border border-emerald-300 animate-in fade-in">
+                <Check className="w-3.5 h-3.5" />
+                <span>बदल सर्व ग्राहकांसाठी सेव्ह झाले!</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tab Content Body */}
@@ -487,22 +539,41 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
                     </p>
                   </div>
 
-                  <div className="relative w-64">
-                    <input
-                      type="text"
-                      value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
-                      placeholder="Search product (Laptop, PC, Camera)..."
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:border-amber-600 focus:bg-white"
-                    />
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:border-amber-600"
+                    >
+                      <option value="all">All Categories</option>
+                      <option value="laptops">Laptops</option>
+                      <option value="computers_desktops">Desktops</option>
+                      <option value="printers_scanners">Printers</option>
+                      <option value="cameras_cctv">CCTV</option>
+                      <option value="toner_ink">Toner & Ink</option>
+                      <option value="computer_accessories">Accessories</option>
+                      <option value="networking">Networking</option>
+                    </select>
+                    <div className="relative flex-1 sm:w-56">
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Search product..."
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:border-amber-600 focus:bg-white"
+                      />
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[420px] overflow-y-auto p-1">
                   {products
-                    .filter(p => p.title.toLowerCase().includes(productSearch.toLowerCase()) || p.brand.toLowerCase().includes(productSearch.toLowerCase()))
-                    .slice(0, 12)
+                    .filter(p =>
+                      (categoryFilter === 'all' || p.category === categoryFilter) &&
+                      (p.title.toLowerCase().includes(productSearch.toLowerCase()) ||
+                        p.brand.toLowerCase().includes(productSearch.toLowerCase()))
+                    )
                     .map((p) => (
                       <div key={p.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3 hover:border-slate-300 transition-colors">
                         <img
@@ -521,7 +592,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
                                 value={newProductImgUrl}
                                 onChange={(e) => setNewProductImgUrl(e.target.value)}
                                 placeholder="Paste new Image URL..."
-                                className="flex-1 p-1 bg-white border border-blue-400 rounded text-[11px] outline-none"
+                                className="flex-1 min-w-0 p-1 bg-white border border-blue-400 rounded text-[11px] outline-none"
                               />
                               <button
                                 onClick={() => handleSaveProductImage(p.id)}
@@ -540,7 +611,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <label className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-bold cursor-pointer transition-colors shadow-2xs">
                                 <Camera className="w-3 h-3 text-blue-600" />
-                                <span>Upload Store Photo</span>
+                                <span>Upload Photo</span>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -558,6 +629,13 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
                               >
                                 Paste URL
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveTab('prices')}
+                                className="text-[11px] text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer"
+                              >
+                                Edit Price
+                              </button>
                             </div>
                           )}
                         </div>
@@ -568,7 +646,150 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ onClose }) => {
             </div>
           )}
 
-          {/* TAB 2: PAYMENT & GATEWAY MANAGEMENT */}
+          {/* TAB 2: PRODUCT PRICE & MRP CONTROL */}
+          {activeTab === 'prices' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-linear-to-r from-amber-50 to-yellow-50 rounded-2xl border border-amber-200 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-extrabold text-amber-950 text-sm flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-amber-700" />
+                    <span>Product Price & MRP Control / किंमत व डिस्काउंट व्यवस्थापन</span>
+                  </h3>
+                  <p className="text-[11px] text-amber-900 mt-0.5">
+                    कोणत्याही प्रॉडक्टची विक्री किंमत (Selling Price) आणि MRP येथे बदला — बदल सर्व ग्राहकांच्या मोबाईलवर तात्काळ अपडेट होतील.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-xl text-xs outline-none focus:border-amber-600"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="laptops">Laptops</option>
+                    <option value="computers_desktops">Desktops</option>
+                    <option value="printers_scanners">Printers</option>
+                    <option value="cameras_cctv">CCTV</option>
+                    <option value="toner_ink">Toner & Ink</option>
+                    <option value="computer_accessories">Accessories</option>
+                    <option value="networking">Networking</option>
+                  </select>
+                  <div className="relative flex-1 sm:w-56">
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Search product to edit price..."
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs outline-none focus:border-amber-600"
+                    />
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto p-1">
+                {products
+                  .filter(p =>
+                    (categoryFilter === 'all' || p.category === categoryFilter) &&
+                    (p.title.toLowerCase().includes(productSearch.toLowerCase()) ||
+                      p.brand.toLowerCase().includes(productSearch.toLowerCase()))
+                  )
+                  .map((p) => {
+                    const draft = priceDrafts[p.id];
+                    const priceVal = draft?.price ?? String(p.price);
+                    const mrpVal = draft?.mrp ?? String(p.mrp);
+                    const numPrice = Number(priceVal) || 0;
+                    const numMrp = Number(mrpVal) || 0;
+                    const discountPct = numMrp > numPrice && numMrp > 0
+                      ? Math.round(((numMrp - numPrice) / numMrp) * 100)
+                      : 0;
+
+                    return (
+                      <div key={p.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={p.images[0]}
+                            alt={p.title}
+                            className="w-12 h-12 object-contain rounded-xl bg-slate-50 p-1 border border-slate-200 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-slate-900 truncate text-xs">{p.title}</div>
+                            <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                              <span>{p.brand}</span>
+                              <span>•</span>
+                              <span className="font-bold text-emerald-700">Current: {formatINR(p.price)}</span>
+                              {discountPct > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+                                  {discountPct}% OFF
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                              Selling Price (₹)
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={priceVal}
+                              onChange={(e) =>
+                                setPriceDrafts((prev) => ({
+                                  ...prev,
+                                  [p.id]: { price: e.target.value, mrp: mrpVal },
+                                }))
+                              }
+                              className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-amber-600 focus:bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                              MRP (₹)
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={mrpVal}
+                              onChange={(e) =>
+                                setPriceDrafts((prev) => ({
+                                  ...prev,
+                                  [p.id]: { price: priceVal, mrp: e.target.value },
+                                }))
+                              }
+                              className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-amber-600 focus:bg-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[10px] text-slate-400">
+                            Stock: {p.stock} units
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleSaveProductPrice(p.id, p.price, p.mrp)}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              savedPriceId === p.id
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-amber-600 hover:bg-amber-700 text-white'
+                            }`}
+                          >
+                            {savedPriceId === p.id ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                            <span>{savedPriceId === p.id ? 'Price Saved!' : 'Save Price'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: PAYMENT & GATEWAY MANAGEMENT */}
           {activeTab === 'payments' && (
             <form onSubmit={handleSavePaymentSettings} className="space-y-6">
               

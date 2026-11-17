@@ -7,6 +7,7 @@ import {
   FirebaseUser,
   syncFirebaseUserProfile,
   updateFirestoreUserProfile,
+  resolveGoogleRedirectResult,
 } from '../firebase';
 
 interface AuthContextType {
@@ -42,9 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const closeFirstTimeLogin = useCallback(() => {
-    if (auth.currentUser) {
-      setIsFirstTimeLoginOpen(false);
-    }
+    setIsFirstTimeLoginOpen(false);
   }, []);
 
   const completeFirebaseLogin = useCallback(async (fbUser: FirebaseUser): Promise<UserProfile> => {
@@ -60,19 +59,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Clean up any legacy insecure localStorage mock sessions
     localStorage.removeItem('vc_user');
+    let isMounted = true;
+
+    // Resolve any pending mobile Google redirect sign-in
+    resolveGoogleRedirectResult();
+
+    // Failsafe so slow mobile networks never stall on the loading screen
+    const loadingTimer = setTimeout(() => {
+      if (isMounted) setAuthLoading(false);
+    }, 4000);
 
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (!isMounted) return;
+      clearTimeout(loadingTimer);
+
       if (fbUser) {
         setFirebaseUser(fbUser);
         try {
           const profile = await syncFirebaseUserProfile(fbUser);
+          if (!isMounted) return;
           setUser(profile);
           setIsFirstTimeLoginOpen(false);
           setAuthError(null);
         } catch (err: any) {
           console.error('Failed to load/create customer profile in Firestore:', err);
+          if (!isMounted) return;
           setAuthError('Unable to sync customer profile from Firestore.');
-          // Still keep minimal verified phone identity if Firestore read fails temporarily
           const digits = (fbUser.phoneNumber || '').replace(/\D/g, '').slice(-10);
           const fallbackRole: UserRole =
             fbUser.emailVerified && fbUser.email === 'p.ganeshkar8788@gmail.com' ? 'admin' : 'customer';
@@ -92,12 +104,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setFirebaseUser(null);
         setUser(null);
-        setIsFirstTimeLoginOpen(true);
       }
       setAuthLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(loadingTimer);
+      unsubscribe();
+    };
   }, []);
 
   const logout = useCallback(async () => {
@@ -109,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFirebaseUser(null);
       setUser(null);
       localStorage.removeItem('vc_user');
-      setIsFirstTimeLoginOpen(true);
+      setIsFirstTimeLoginOpen(false);
     }
   }, []);
 
