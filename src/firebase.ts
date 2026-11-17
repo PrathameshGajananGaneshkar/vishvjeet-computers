@@ -1,15 +1,12 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   GoogleAuthProvider,
   signInWithPopup,
   onAuthStateChanged,
   signOut,
   setPersistence,
   browserLocalPersistence,
-  ConfirmationResult,
   Auth,
   User as FirebaseUser,
 } from 'firebase/auth';
@@ -110,69 +107,7 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
-// --- RECAPTCHA VERIFIER & PHONE AUTH ---
-export function clearRecaptchaVerifier(containerId: string = 'recaptcha-container'): void {
-  if (typeof window === 'undefined') return;
-  const win = window as any;
-  if (win.recaptchaVerifier) {
-    try {
-      win.recaptchaVerifier.clear();
-    } catch {
-      // ignore cleanup error
-    }
-    win.recaptchaVerifier = null;
-  }
-  const container = document.getElementById(containerId);
-  if (container) {
-    container.innerHTML = '';
-  }
-}
-
-/**
- * Initialize a clean Firebase RecaptchaVerifier instance.
- * Clears any previous instance to safely support retries & Resend OTP.
- */
-export function initRecaptchaVerifier(
-  containerId: string = 'recaptcha-container',
-  size: 'invisible' | 'normal' = 'invisible',
-  onExpired?: () => void
-): RecaptchaVerifier {
-  if (typeof window === 'undefined') {
-    throw new Error('reCAPTCHA can only be initialized in a browser environment.');
-  }
-
-  clearRecaptchaVerifier(containerId);
-
-  const container = document.getElementById(containerId);
-  if (!container) {
-    throw new Error(`reCAPTCHA container #${containerId} not found in DOM.`);
-  }
-
-  const verifier = new RecaptchaVerifier(auth, containerId, {
-    size,
-    callback: () => {
-      // reCAPTCHA solved automatically or by user
-    },
-    'expired-callback': () => {
-      console.warn('reCAPTCHA challenge expired.');
-      if (onExpired) onExpired();
-    },
-  });
-
-  (window as any).recaptchaVerifier = verifier;
-  return verifier;
-}
-
-/**
- * Send a real 6-digit SMS OTP via Firebase Authentication Phone Provider.
- */
-export async function sendFirebasePhoneOtp(
-  phoneNumberE164: string,
-  verifier: RecaptchaVerifier
-): Promise<ConfirmationResult> {
-  return await signInWithPhoneNumber(auth, phoneNumberE164, verifier);
-}
-
+// --- GOOGLE AUTHENTICATION ---
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
@@ -327,10 +262,8 @@ export async function updateFirestoreUserProfile(
 }
 
 export {
-  signInWithPhoneNumber,
   onAuthStateChanged,
   signOut,
-  RecaptchaVerifier,
 };
 
-export type { ConfirmationResult, FirebaseUser };
+export type { FirebaseUser };
