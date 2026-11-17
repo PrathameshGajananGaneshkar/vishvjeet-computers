@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#185ad9"/>
+      <stop offset="100%" stop-color="#2874f0"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe500"/>
+      <stop offset="100%" stop-color="#ffb700"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with safe-zone margin for Android maskable icons -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  
+  <!-- Outer glowing ring -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#ffffff" stroke-width="6" stroke-opacity="0.15" stroke-dasharray="16 12"/>
+
+  <!-- Computer screen outline -->
+  <rect x="120" y="110" width="272" height="180" rx="18" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-width="12"/>
+  <rect x="136" y="126" width="240" height="148" rx="8" fill="#0d3b84"/>
+  
+  <!-- Screen stand -->
+  <path d="M220 290 L200 340 L312 340 L292 290 Z" fill="#ffffff" fill-opacity="0.9"/>
+  <rect x="180" y="340" width="152" height="16" rx="8" fill="#ffffff"/>
+
+  <!-- Brand VC Text inside screen -->
+  <text x="256" y="222" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-weight="900" font-size="92" fill="#ffffff" text-anchor="middle" letter-spacing="4">
+    VC
+  </text>
+
+  <!-- Flipkart Plus style golden star / sparkle -->
+  <path d="M375 95 L383 118 L406 126 L383 134 L375 157 L367 134 L344 126 L367 118 Z" fill="url(#gold)"/>
+  
+  <!-- Chikhli subtitle -->
+  <rect x="156" y="375" width="200" height="40" rx="20" fill="url(#gold)"/>
+  <text x="256" y="402" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="800" font-size="20" fill="#185ad9" text-anchor="middle" letter-spacing="1.5">
+    CHIKHLI APP
+  </text>
+</svg>

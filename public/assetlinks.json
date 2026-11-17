@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.vishvjeetcomputer.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7F:0F:7B:6A:B9:3A:D8:E5:67:8A:2C:19:64:89:12:35:E1:12:45:67:89:AB:CD:EF:01:23:45:67:89"
+      ]
+    }
+  }
+]

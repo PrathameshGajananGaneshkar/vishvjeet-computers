@@ -1,0 +1,232 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Verified customer and staff profile stored in Firestore",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Authentication UID"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 20,
+          "description": "Verified E.164 mobile number"
+        },
+        "phoneVerified": {
+          "type": "boolean"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer", "admin", "owner", "technician"]
+        },
+        "savedPincode": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "name", "phone", "role", "createdAt", "updatedAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Authorized admin UID registry",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "required": ["uid"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Electronics hardware, accessories, and supplies catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "brand": { "type": "string", "maxLength": 80 },
+        "category": { "type": "string", "maxLength": 80 },
+        "subCategory": { "type": "string", "maxLength": 80 },
+        "price": { "type": "number" },
+        "mrp": { "type": "number" },
+        "stock": { "type": "integer" },
+        "images": { "type": "string", "maxLength": 1000 },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "integer" },
+        "isFeatured": { "type": "boolean" },
+        "isDealOfDay": { "type": "boolean" },
+        "sku": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "title", "brand", "category", "price", "mrp", "stock"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product category metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 80 }
+      },
+      "required": ["id", "name"]
+    },
+    "Banner": {
+      "title": "Banner",
+      "description": "Storefront hero promotional banner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "image": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "title", "image"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 50 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 20 },
+        "customerEmail": { "type": "string", "maxLength": 100 },
+        "totalAmount": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid", "failed", "refunded"] },
+        "orderStatus": { "type": "string", "enum": ["placed", "confirmed", "processing", "packed", "shipped", "out_for_delivery", "delivered", "cancelled", "returned"] },
+        "paymentMethod": { "type": "string", "enum": ["razorpay", "upi", "card", "netbanking", "cod"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderNumber", "userId", "totalAmount", "paymentStatus", "orderStatus", "paymentMethod", "createdAt"]
+    },
+    "ServiceRequest": {
+      "title": "ServiceRequest",
+      "description": "Computer, printer, CCTV and IT service request ticket",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "ticketNumber": { "type": "string", "maxLength": 50 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 20 },
+        "serviceType": { "type": "string", "maxLength": 100 },
+        "deviceType": { "type": "string", "maxLength": 80 },
+        "brandModel": { "type": "string", "maxLength": 100 },
+        "problemDescription": { "type": "string", "maxLength": 1000 },
+        "preferredDate": { "type": "string", "maxLength": 30 },
+        "serviceMode": { "type": "string", "enum": ["store_dropoff", "on_site"] },
+        "status": { "type": "string", "enum": ["new", "contacted", "scheduled", "in_progress", "waiting_parts", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "ticketNumber", "customerName", "customerPhone", "serviceType", "deviceType", "problemDescription", "status", "createdAt"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Discount coupon code",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 30 },
+        "discountType": { "type": "string", "enum": ["percent", "fixed"] },
+        "discountValue": { "type": "number" },
+        "minOrderValue": { "type": "number" },
+        "maxDiscount": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "code", "discountType", "discountValue", "isActive"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Verified customer product rating and review",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "rating": { "type": "number" },
+        "comment": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "productId", "userId", "userName", "rating", "comment", "createdAt"]
+    },
+    "StoreSetting": {
+      "title": "StoreSetting",
+      "description": "Storefront global configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "storeName": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "storeName"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Customer and staff profiles secured by UID and verified phone/email"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Authorized store administrators"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Hardware and accessories product documents"
+    },
+    "/categories/{catId}": {
+      "schema": "Category",
+      "description": "Product categories"
+    },
+    "/banners/{bannerId}": {
+      "schema": "Banner",
+      "description": "Storefront hero banners"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders and payment records"
+    },
+    "/serviceRequests/{ticketId}": {
+      "schema": "ServiceRequest",
+      "description": "Computer and IT repair service tickets"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Promotional coupon discount definitions"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Customer feedback and reviews"
+    },
+    "/storeSettings/{settingId}": {
+      "schema": "StoreSetting",
+      "description": "Storefront configuration settings"
+    }
+  }
+}

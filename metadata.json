@@ -1,0 +1,6 @@
+{
+  "name": "Vishvjeet Computer - E-Commerce & IT Services",
+  "description": "Complete technology store and computer repair services in Chikhli, Buldhana, Maharashtra. Shop laptops, desktops, printers, CCTV, accessories, and book expert IT services.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

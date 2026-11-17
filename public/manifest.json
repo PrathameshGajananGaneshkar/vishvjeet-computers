@@ -1,0 +1,43 @@
+{
+  "id": "/",
+  "name": "Vishvjeet Computer - E-Commerce & IT Services",
+  "short_name": "Vishvjeet",
+  "description": "Buy laptops, desktop PCs, printers, toners, CCTV and book expert IT repair services in Chikhli, Buldhana.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#2874f0",
+  "categories": ["shopping", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book Computer Service",
+      "short_name": "Repair Service",
+      "description": "Book laptop or computer repair at Chikhli store",
+      "url": "/#services",
+      "icons": [{ "src": "/icon.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Laptops & Desktops",
+      "short_name": "Laptops",
+      "description": "Browse laptops and PCs",
+      "url": "/#laptops",
+      "icons": [{ "src": "/icon.svg", "sizes": "192x192" }]
+    }
+  ]
+}

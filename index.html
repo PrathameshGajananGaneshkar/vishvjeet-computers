@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Gracefully prevent Vite HMR WebSocket connection failure in sandbox iframe
+      (function() {
+        try {
+          const OriginalWebSocket = window.WebSocket;
+          if (OriginalWebSocket) {
+            function SafeWebSocket(url, protocols) {
+              const urlStr = String(url || '');
+              const isHmr = urlStr.includes('vite') || 
+                            protocols === 'vite-hmr' || 
+                            (Array.isArray(protocols) && protocols.includes('vite-hmr')) ||
+                            !window.location.hostname.includes('localhost');
+              
+              if (isHmr) {
+                const dummy = new EventTarget();
+                dummy.binaryType = 'blob';
+                dummy.readyState = 1; // WebSocket.OPEN
+                dummy.bufferedAmount = 0;
+                dummy.extensions = '';
+                dummy.protocol = 'vite-hmr';
+                dummy.url = urlStr;
+                dummy.onopen = null;
+                dummy.onclose = null;
+                dummy.onerror = null;
+                dummy.onmessage = null;
+                dummy.send = function() {};
+                dummy.close = function(code, reason) {
+                  dummy.readyState = 3;
+                  if (dummy.onclose) {
+                    dummy.onclose(new CloseEvent('close', { wasClean: true, code: code || 1000, reason: reason || '' }));
+                  }
+                };
+                setTimeout(() => {
+                  dummy.readyState = 1;
+                  const ev = new Event('open');
+                  if (dummy.onopen) dummy.onopen(ev);
+                  dummy.dispatchEvent(ev);
+                }, 20);
+                return dummy;
+              }
+              return new OriginalWebSocket(url, protocols);
+            }
+            SafeWebSocket.prototype = OriginalWebSocket.prototype;
+            SafeWebSocket.CONNECTING = 0;
+            SafeWebSocket.OPEN = 1;
+            SafeWebSocket.CLOSING = 2;
+            SafeWebSocket.CLOSED = 3;
+            window.WebSocket = SafeWebSocket;
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        const origError = console.error;
+        console.error = function(...args) {
+          if (args.some(arg => {
+            const str = (arg && arg.message) || String(arg || '');
+            return str.includes('WebSocket') || str.includes('[vite]');
+          })) {
+            return;
+          }
+          origError.apply(console, args);
+        };
+        window.addEventListener('error', (e) => {
+          if (e.message && (e.message.includes('WebSocket') || e.message.includes('[vite]'))) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', (e) => {
+          if (e.reason && String(e.reason).includes('WebSocket')) {
+            e.preventDefault();
+          }
+        });
+      })();
+    </script>
+    <title>Vishvjeet Computer - E-Commerce & IT Services</title>
+    <meta name="description" content="Complete technology store and computer repair services in Chikhli, Buldhana, Maharashtra. Shop laptops, desktops, printers, CCTV, accessories, and book expert IT services." />
+    <meta property="og:title" content="Vishvjeet Computer - E-Commerce & IT Services" />
+    <meta property="og:description" content="Complete technology store and computer repair services in Chikhli, Buldhana, Maharashtra. Shop laptops, desktops, printers, CCTV, accessories, and book expert IT services." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#2874f0" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Vishvjeet" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
